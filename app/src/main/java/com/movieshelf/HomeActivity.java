@@ -1,4 +1,4 @@
-package com.loginapp;
+package com.movieshelf;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;

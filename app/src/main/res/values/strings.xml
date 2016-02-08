@@ -23,4 +23,6 @@
     <string name="title_activity_splash">SplashActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+
+    <string name="server_client_id">74265111587-2jdgf9q92j9c2tkl7imlppjtghb8uk5j.apps.googleusercontent.com</string>
 </resources>

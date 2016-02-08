@@ -1,4 +1,4 @@
-package com.loginapp;
+package com.movieshelf;
 
 import org.junit.Test;
 
