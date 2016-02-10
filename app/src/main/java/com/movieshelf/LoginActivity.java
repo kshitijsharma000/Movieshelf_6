@@ -1,20 +1,12 @@
 package com.movieshelf;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.app.LoaderManager.LoaderCallbacks;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.Loader;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -24,7 +16,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -45,18 +36,12 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.OptionalPendingResult;
-import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
 
 import com.facebook.FacebookSdk;
 
+import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static android.Manifest.permission.READ_CONTACTS;
 
 /**
  * A login screen that offers login via email/password.
@@ -75,6 +60,16 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private static final String[] DUMMY_CREDENTIALS = new String[]{
             "temp@gmail.com:temp0", "temp2@gmail.com:temp0"
     };
+
+
+    static enum LOGIN_TYPE {
+        GOOGLE,
+        FACEBOOK,
+        NORMAL
+    }
+
+    private AlertDialog mAlertDialog;
+
     private static final int RC_SIGN_IN = 999;
     private static final String TAG = "LoginActivity";
     /**
@@ -90,6 +85,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private ProgressDialog mProgressDialog;
     private SignInButton signInButton;
     private CallbackManager callbackManager;
+    private User mUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +102,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
                 if (id == R.id.login || id == EditorInfo.IME_NULL) {
+                    mUser = new User();
+                    mUser.setLoginType(LOGIN_TYPE.NORMAL.toString());
                     attemptLogin();
                     return true;
                 }
@@ -139,13 +137,25 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                     @Override
                     public void onCompleted(JSONObject object, GraphResponse response) {
                         hideProgressDialog();
+                        mUser = new User();
                         System.out.println("new graph request completed");
-                        System.out.println("gsph json : " + object.toString());
+                        System.out.println("gsph json : " + response.toString());
+                        try {
+                            mUser.setFbId(object.getString("id").toString());
+                            mUser.setFbName(object.getString("name").toString());
+                            mUser.setFbEmailId(object.getString("email").toString());
+                            mUser.setLoginType(LOGIN_TYPE.FACEBOOK.toString());
+                            attemptLogin();
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
                     }
                 });
 
                 Bundle parametres = new Bundle();
-                parametres.putString("fields", "id,name,email,public_profile");
+                parametres.putString("fields", "id,name,email");
                 graphRequest.setParameters(parametres);
                 graphRequest.executeAsync();
             }
@@ -158,6 +168,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onError(FacebookException error) {
                 System.out.println("facebook login error : " + error.toString());
+                showAlertDialog("Facebook login error");
             }
         });
 
@@ -213,50 +224,71 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
      * Attempts to sign in or register the account specified by the login form.
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
+     *
+     * @paramnormal
      */
     private void attemptLogin() {
         if (mAuthTask != null) {
             return;
         }
 
-        // Reset errors.
-        mEmailView.setError(null);
-        mPasswordView.setError(null);
+        if (mUser.getLoginType().equals(LOGIN_TYPE.NORMAL.toString())) {
+            // Reset errors.
+            mEmailView.setError(null);
+            mPasswordView.setError(null);
 
-        // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
+            // Store values at the time of the login attempt.
+            String email = mEmailView.getText().toString();
+            String password = mPasswordView.getText().toString();
 
-        boolean cancel = false;
-        View focusView = null;
+            boolean cancel = false;
+            View focusView = null;
 
-        // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-            mPasswordView.setError(getString(R.string.error_invalid_password));
-            focusView = mPasswordView;
-            cancel = true;
-        }
+            // Check for a valid password, if the user entered one.
+            if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+                mPasswordView.setError(getString(R.string.error_invalid_password));
+                focusView = mPasswordView;
+                cancel = true;
+            }
 
-        // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
-            mEmailView.setError(getString(R.string.error_field_required));
-            focusView = mEmailView;
-            cancel = true;
-        } else if (!isEmailValid(email)) {
-            mEmailView.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailView;
-            cancel = true;
-        }
+            // Check for a valid email address.
+            if (TextUtils.isEmpty(email)) {
+                mEmailView.setError(getString(R.string.error_field_required));
+                focusView = mEmailView;
+                cancel = true;
+            } else if (!isEmailValid(email)) {
+                mEmailView.setError(getString(R.string.error_invalid_email));
+                focusView = mEmailView;
+                cancel = true;
+            }
 
-        if (cancel) {
-            // There was an error; don't attempt login and focus the first
-            // form field with an error.
-            focusView.requestFocus();
-        } else {
-            // Show a progress spinner, and kick off a background task to
-            // perform the user login attempt.
+            if (cancel) {
+                // There was an error; don't attempt login and focus the first
+                // form field with an error.
+                focusView.requestFocus();
+            } else {
+                // Show a progress spinner, and kick off a background task to
+                // perform the user login attempt.
+                showProgressDialog();
+                if (mUser == null)
+                    mUser = new User();
+                mUser.setId(email);
+                mUser.setName("User");
+                mUser.setPassword(password);
+                mUser.setLoginType(LOGIN_TYPE.NORMAL.toString());
+
+                mAuthTask = new UserLoginTask(mUser);
+                mAuthTask.execute((Void) null);
+            }
+        } else /*if (mUser.getLoginType().equals(LOGIN_TYPE.GOOGLE.toString())) {
+
             showProgressDialog();
-            mAuthTask = new UserLoginTask(email, password);
+            mAuthTask = new UserLoginTask(mUser);
+            mAuthTask.execute((Void) null);
+
+        } else if (mUser.getLoginType().equals(LOGIN_TYPE.FACEBOOK.toString()))*/ {
+            showProgressDialog();
+            mAuthTask = new UserLoginTask(mUser);
             mAuthTask.execute((Void) null);
         }
     }
@@ -294,6 +326,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         hideProgressDialog();
         StringBuffer stringBuffer = new StringBuffer();
         if (result.isSuccess()) {
+            mUser = new User();
             // Signed in successfully, show authenticated UI.
             GoogleSignInAccount acct = result.getSignInAccount();
             Log.i(TAG, "Acc name : " + acct.getDisplayName());
@@ -301,14 +334,43 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             Log.i(TAG, "Acc id : " + acct.getId());
             Log.i(TAG, "Acc name : " + acct.getPhotoUrl());
             Log.i(TAG, "Acc scopes : " + acct.getGrantedScopes());
-            Log.i(TAG, "Acc token : " + acct.getIdToken());
             stringBuffer.append(acct.getIdToken());
             Log.i(TAG, "token in string buffer : " + stringBuffer.toString());
             Log.i(TAG, "size of token in string buffer : " + stringBuffer.toString().length());
 
+            if (acct.getEmail() != null && isEmailValid(acct.getEmail())) {
+                //Email id is present and valid
+                mUser.setLoginType(LOGIN_TYPE.GOOGLE.toString());
+                mUser.setGpEmailId(acct.getEmail());
+                mUser.setGpName(acct.getDisplayName());
+                mUser.setGpId(acct.getId());
+                mUser.setGpProfileImage(acct.getPhotoUrl().toString());
+                attemptLogin();
+            } else {
+                showAlertDialog("Google Login error: email not found");
+            }
+
         } else {
             // Signed out, show unauthenticated UI.
         }
+    }
+
+    private void showAlertDialog(String msg) {
+        if (mAlertDialog == null) {
+            mAlertDialog = new AlertDialog.Builder(this).create();
+            mAlertDialog.setTitle("Error");
+            mAlertDialog.setMessage(msg);
+            mAlertDialog.setCancelable(false);
+            mAlertDialog.setIcon(android.R.drawable.stat_notify_error);
+            mAlertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Log.i(TAG, "error dialog cancelled");
+                    mAlertDialog.hide();
+                }
+            });
+        }
+        mAlertDialog.show();
     }
 
     private void showProgressDialog() {
@@ -333,18 +395,21 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
      */
     public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
 
-        private final String mEmail;
+        private User user;
+        private String mEmail;
         private final String mPassword;
 
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
+        UserLoginTask(User user) {
+            this.user = user;
+            if (user.getLoginType().equals(LOGIN_TYPE.NORMAL.toString()))
+                mEmail = user.getId();
+
+            mPassword = user.getPassword();
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
             // TODO: attempt authentication against a network service.
-
             try {
                 // Simulate network access.
                 Thread.sleep(2000);
@@ -360,7 +425,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                 }
             }
 
-            // TODO: register the new account here.
+            // TODO: register the new account here, open register user activity
             System.out.println("Please register new account");
             return true;
         }
@@ -372,6 +437,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
 
             if (success) {
                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                intent.putExtra("user", user);
                 startActivity(intent);
                 finish();
 

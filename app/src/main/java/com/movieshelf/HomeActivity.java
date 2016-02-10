@@ -12,14 +12,27 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class HomeActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+
+    User mUser;
+    CircleImageView circleImageView;
+
+    private String mUsername;
+    private String mUserMailId;
+    private String mProfileImgUrl;
+    private TextView mtextUsername;
+    private TextView mTextUserMailId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -40,6 +53,31 @@ public class HomeActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        View handle = navigationView.getHeaderView(0);
+        circleImageView = (CircleImageView) handle.findViewById(R.id.imageView);
+        mtextUsername = (TextView) handle.findViewById(R.id.username);
+        mTextUserMailId = (TextView) handle.findViewById(R.id.userEmailId);
+
+        mUser = (User) getIntent().getExtras().get("user");
+        if (mUser != null)
+            fillData();
+
+    }
+
+    private void fillData() {
+        if (mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.GOOGLE.toString())) {
+            mtextUsername.setText(mUser.getGpName());
+            mTextUserMailId.setText(mUser.getGpEmailId());
+        }
+        else if(mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())){
+            mtextUsername.setText(mUser.getFbName());
+            mTextUserMailId.setText(mUser.getFbEmailId());
+        }
+        else if(mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())){
+            mtextUsername.setText(mUser.getName());
+            mTextUserMailId.setText(mUser.getId());
+        }
     }
 
     @Override
