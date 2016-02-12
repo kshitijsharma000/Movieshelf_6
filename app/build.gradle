@@ -33,4 +33,6 @@ dependencies {
     compile 'com.google.android.gms:play-services-auth:8.3.0'
     compile 'com.facebook.android:facebook-android-sdk:4.+'
     compile 'de.hdodenhof:circleimageview:2.0.0'
+    compile 'com.mcxiaoke.volley:library:1.0.19'
+    compile 'com.github.kikoso:SwipeableCards:1.1-RELEASE@aar'
 }

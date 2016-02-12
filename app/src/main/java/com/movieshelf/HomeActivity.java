@@ -1,5 +1,7 @@
 package com.movieshelf;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -9,15 +11,25 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import com.android.volley.toolbox.ImageLoader;
+import com.andtinder.model.CardModel;
+import com.andtinder.model.Orientations;
+import com.andtinder.view.CardContainer;
+import com.andtinder.view.SimpleCardStackAdapter;
+import com.movieshelf.network.DataRetriever;
+
+import org.json.JSONObject;
+
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class HomeActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements DataRetriever.DataListener, NavigationView.OnNavigationItemSelectedListener {
 
     User mUser;
     CircleImageView circleImageView;
@@ -27,7 +39,9 @@ public class HomeActivity extends AppCompatActivity
     private String mProfileImgUrl;
     private TextView mtextUsername;
     private TextView mTextUserMailId;
+    private CardContainer mCardContainer;
 
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,18 +77,48 @@ public class HomeActivity extends AppCompatActivity
         if (mUser != null)
             fillData();
 
+        mCardContainer = (CardContainer) findViewById(R.id.mainCardContainer);
+        mCardContainer.setOrientation(Orientations.Orientation.Ordered);
+
+        CardModel card = new CardModel("Title1", "Description goes here", getDrawable(R.drawable.picture1));
+
+        card.setOnClickListener(new CardModel.OnClickListener() {
+            @Override
+            public void OnClickListener() {
+                Log.i("Swappable Cards", "I am pressing the card");
+            }
+        });
+
+        card.setOnCardDimissedListener(new CardModel.OnCardDimissedListener() {
+            @Override
+            public void onLike() {
+                Log.d("Swappable Card", "I liked it");
+            }
+
+            @Override
+            public void onDislike() {
+                Log.d("Swappable Card", "I did not liked it");
+            }
+        });
+
+        SimpleCardStackAdapter adapter = new SimpleCardStackAdapter(this);
+        adapter.add(new CardModel("Title1", "Description goes here", getDrawable(R.drawable.picture1)));
+        adapter.add(new CardModel("Title2", "Description goes here", getDrawable(R.drawable.picture2)));
+        adapter.add(new CardModel("Title3", "Description goes here", getDrawable(R.drawable.picture3)));
+        adapter.add(new CardModel("Title4", "Description goes here", getDrawable(R.drawable.picture1)));
+        adapter.add(new CardModel("Title5", "Description goes here", getDrawable(R.drawable.picture1)));
+        mCardContainer.setAdapter(adapter);
+
     }
 
     private void fillData() {
         if (mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.GOOGLE.toString())) {
             mtextUsername.setText(mUser.getGpName());
             mTextUserMailId.setText(mUser.getGpEmailId());
-        }
-        else if(mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())){
+        } else if (mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())) {
             mtextUsername.setText(mUser.getFbName());
             mTextUserMailId.setText(mUser.getFbEmailId());
-        }
-        else if(mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())){
+        } else if (mUser.getLoginType().equals(LoginActivity.LOGIN_TYPE.FACEBOOK.toString())) {
             mtextUsername.setText(mUser.getName());
             mTextUserMailId.setText(mUser.getId());
         }
@@ -135,5 +179,25 @@ public class HomeActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    @Override
+    public void requestStart() {
+
+    }
+
+    @Override
+    public void dataReceived(JSONObject jsonObject) {
+
+    }
+
+    @Override
+    public void imageReceived(ImageLoader.ImageContainer imageContainer) {
+
+    }
+
+    @Override
+    public void error(String error) {
+
     }
 }

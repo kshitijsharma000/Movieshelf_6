@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
@@ -21,9 +20,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.android.volley.toolbox.ImageLoader;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
 import com.facebook.login.LoginResult;
@@ -37,8 +38,7 @@ import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Scope;
-
-import com.facebook.FacebookSdk;
+import com.movieshelf.network.DataRetriever;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,7 +46,7 @@ import org.json.JSONObject;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
+public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, DataRetriever.DataListener {
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -60,7 +60,6 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private static final String[] DUMMY_CREDENTIALS = new String[]{
             "temp@gmail.com:temp0", "temp2@gmail.com:temp0"
     };
-
 
     static enum LOGIN_TYPE {
         GOOGLE,
@@ -398,6 +397,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         private User user;
         private String mEmail;
         private final String mPassword;
+        private DataRetriever retriever;
 
         UserLoginTask(User user) {
             this.user = user;
@@ -410,6 +410,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         @Override
         protected Boolean doInBackground(Void... params) {
             // TODO: attempt authentication against a network service.
+            retriever = new DataRetriever(LoginActivity.this, Constants.User_api + Constants.User);
+            retriever.makeRequest();
             try {
                 // Simulate network access.
                 Thread.sleep(2000);
@@ -453,5 +455,26 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             hideProgressDialog();
         }
     }
+
+    @Override
+    public void requestStart() {
+        Log.i(TAG, "starting network request");
+    }
+
+    @Override
+    public void dataReceived(JSONObject jsonObject) {
+        Log.i(TAG, "data recieved from network : " + jsonObject.toString());
+    }
+
+    @Override
+    public void imageReceived(ImageLoader.ImageContainer imageContainer) {
+        Log.i(TAG, "image recieved from url: " + imageContainer.getRequestUrl());
+    }
+
+    @Override
+    public void error(String error) {
+        Log.i(TAG, "error in getting data");
+    }
+
 }
 
